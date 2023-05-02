@@ -1,0 +1,69 @@
+version: "3"
+
+services:
+  wp_kickoff_db:
+    image: mysql:8.0
+    container_name: wp_kickoff_db
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - MYSQL_DATABASE=$MYSQL_USER
+    ports:
+      - "3306:3306"
+    volumes:
+      - dbdata:/var/lib/mysql
+    command: "--default-authentication-plugin=mysql_native_password"
+    networks:
+      - wp-kickoff-network
+
+  wp_kickoff_wordpress:
+    depends_on:
+      - wp_kickoff_db
+    image: wordpress:5.6.1-fpm-alpine
+    container_name: wp_kickoff_wordpress
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - WORDPRESS_DB_HOST=wp_kickoff_db:3306
+      - WORDPRESS_DB_USER=$MYSQL_USER
+      - WORDPRESS_DB_PASSWORD=$MYSQL_PASSWORD
+      - WORDPRESS_DB_NAME=$MYSQL_USER
+    volumes:
+      - wordpress:/var/www/html
+      - ./uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
+    networks:
+      - wp-kickoff-network
+
+  wp_kickoff_webserver:
+    depends_on:
+      - wp_kickoff_wordpress
+    image: nginx:1.15.12-alpine
+    container_name: wp_kickoff_webserver
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - wordpress:/var/www/html
+      - ./nginx-conf:/etc/nginx/conf.d
+      # - certbot-etc:/etc/letsencrypt
+    networks:
+      - wp-kickoff-network
+  # certbot:
+  #   depends_on:
+  #     - wp_kickoff_webserver
+  #   image: certbot/certbot
+  #   container_name: certbot
+  #   volumes:
+  #     - certbot-etc:/etc/letsencrypt
+  #     - wordpress:/var/www/html
+  #   command: certonly --webroot --webroot-path=/var/www/html --email sammy@example.com --agree-tos --no-eff-email --staging -d example.com -d www.example.com
+
+volumes:
+  # certbot-etc:
+  wordpress:
+  dbdata:
+
+
+networks:
+  wp-kickoff-network:
+    driver: bridge

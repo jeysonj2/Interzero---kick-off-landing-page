@@ -1,0 +1,7 @@
+.git
+docker-compose.yml
+.dockerignore
+modis-kickoff/
+page - assets/
+modis-kickoff.zip
+backups/
